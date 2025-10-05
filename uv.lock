@@ -927,18 +927,16 @@ dependencies = [
     { name = "pandas" },
     { name = "snac" },
     { name = "torchaudio" },
-    { name = "torchcodec" },
     { name = "unsloth" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "datasets", extras = ["audio"], specifier = ">=4.1.1" },
+    { name = "datasets", extras = ["audio"], specifier = ">=4.1.0" },
     { name = "huggingface-hub", specifier = ">=0.35.3" },
     { name = "pandas", specifier = ">=2.3.3" },
     { name = "snac", specifier = ">=1.2.1" },
     { name = "torchaudio", specifier = ">=2.8.0" },
-    { name = "torchcodec", specifier = ">=0.7.0" },
     { name = "unsloth", specifier = ">=2025.9.11" },
 ]
 

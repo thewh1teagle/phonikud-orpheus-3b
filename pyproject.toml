@@ -5,11 +5,10 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "datasets[audio]>=4.1.1",
+    "datasets[audio]>=4.1.0",
     "huggingface-hub>=0.35.3",
     "pandas>=2.3.3",
     "snac>=1.2.1",
     "torchaudio>=2.8.0",
-    "torchcodec>=0.7.0",
     "unsloth>=2025.9.11",
 ]
