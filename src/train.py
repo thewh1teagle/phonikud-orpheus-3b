@@ -63,14 +63,15 @@ def load_model():
 
 
 def prepare_dataset():
-    # df = pd.read_csv("./saspeech_manual/metadata_phonemes.csv", sep="|", names=["file_id", "text"])
-    # df["audio"] = df["file_id"].apply(lambda x: f"./saspeech_manual/wav/{x}.wav")
+    df = pd.read_csv("./saspeech_manual/metadata_phonemes.csv", sep="|", names=["file_id", "text"])
+    df["audio"] = df["file_id"].apply(lambda x: f"./saspeech_manual/wav/{x}.wav")
 
-    # dataset = Dataset.from_dict(df)
-    # dataset = dataset.cast_column("audio", Audio(sampling_rate=22050))
-    # # Decode the audio (instead of lazy loading)
-    # dataset = dataset.map(lambda x: {"audio": x["audio"]})
-    dataset = load_dataset("MrDragonFox/Elise", split = "train")
+    dataset = Dataset.from_dict(df)
+    dataset = dataset.cast_column("audio", Audio(sampling_rate=22050))
+    # Decode the audio (instead of lazy loading)
+    dataset = dataset.map(lambda x: {"audio": x["audio"]})
+    
+    # dataset = load_dataset("MrDragonFox/Elise", split = "train")
 
     return dataset
 
