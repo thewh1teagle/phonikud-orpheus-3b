@@ -1,8 +1,14 @@
+"""
+uv run src/infer.py ./outputs/checkpoint-60
+"""
+
 import argparse
 from unsloth import FastLanguageModel
 import torch
-from IPython.display import display, Audio
 from snac import SNAC
+import soundfile as sf
+import os
+from pathlib import Path
 
 def redistribute_codes(code_list, snac_model):
     """Redistribute codes for audio generation"""
@@ -17,6 +23,12 @@ def redistribute_codes(code_list, snac_model):
         layer_2.append(code_list[7*i+4]-(4*4096))
         layer_3.append(code_list[7*i+5]-(5*4096))
         layer_3.append(code_list[7*i+6]-(6*4096))
+    
+    # Clip codes to valid range [0, 4095] to prevent IndexError
+    layer_1 = [max(0, min(4095, x)) for x in layer_1]
+    layer_2 = [max(0, min(4095, x)) for x in layer_2]
+    layer_3 = [max(0, min(4095, x)) for x in layer_3]
+    
     codes = [torch.tensor(layer_1).unsqueeze(0),
              torch.tensor(layer_2).unsqueeze(0),
              torch.tensor(layer_3).unsqueeze(0)]
@@ -26,13 +38,14 @@ def redistribute_codes(code_list, snac_model):
     return audio_hat
 
 
-def run_inference(model_path, prompts, chosen_voice=None):
+def run_inference(model_path, prompts, chosen_voice=None, output_dir="outputs"):
     """Run inference using the trained model
     
     Args:
         model_path: Path to the saved model directory
         prompts: List of text prompts to generate audio from
         chosen_voice: Voice identifier (None for single-speaker)
+        output_dir: Directory to save generated audio files
     """
     
     # Load model and tokenizer from the specified path
@@ -132,19 +145,31 @@ def run_inference(model_path, prompts, chosen_voice=None):
         samples = redistribute_codes(code_list, snac_model)
         my_samples.append(samples)
     
-    # Display results
+    # Save results to audio files
     if len(prompts) != len(my_samples):
         raise Exception("Number of prompts and samples do not match")
-    else:
-        for i in range(len(my_samples)):
-            print(prompts[i])
-            samples = my_samples[i]
-            display(Audio(samples.detach().squeeze().to("cpu").numpy(), rate=24000))
+    
+    # Create output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+    
+    saved_files = []
+    for i in range(len(my_samples)):
+        print(f"Prompt: {prompts[i]}")
+        samples = my_samples[i]
+        audio_data = samples.detach().squeeze().to("cpu").numpy()
+        
+        # Generate filename
+        output_file = os.path.join(output_dir, f"generated_{i:03d}.wav")
+        
+        # Save audio file
+        sf.write(output_file, audio_data, 24000)
+        saved_files.append(output_file)
+        print(f"Saved: {output_file}")
     
     # Clean up to save RAM
     del my_samples, samples
     
-    return None
+    return saved_files
 
 
 if __name__ == "__main__":
@@ -152,13 +177,18 @@ if __name__ == "__main__":
     parser.add_argument("model_path", type=str, help="Path to the trained model directory (e.g., lora_model)")
     parser.add_argument("--prompt", type=str, action="append", help="Text prompt(s) to generate audio from (can be used multiple times)")
     parser.add_argument("--voice", type=str, default=None, help="Voice identifier (None for single-speaker)")
+    parser.add_argument("--output-dir", type=str, default="audio_outputs", help="Directory to save generated audio files (default: outputs)")
     
     args = parser.parse_args()
+    
+    # Create output directory
+    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     
     # Default prompts if none provided
     if args.prompt is None or len(args.prompt) == 0:
         prompts = [
             "Hey there my name is Elise, <giggles> and I'm a speech generation model that can sound like a person.",
+            "hakˈoaχ leʃanˈot matχˈil baʁˈeɡa ʃebˈo ʔatˈa maʔamˈin ʃezˈe ʔefʃaʁˈi!"
         ]
     else:
         prompts = args.prompt
@@ -166,5 +196,7 @@ if __name__ == "__main__":
     chosen_voice = args.voice
     
     # Run inference
-    run_inference(args.model_path, prompts, chosen_voice)
+    saved_files = run_inference(args.model_path, prompts, chosen_voice, args.output_dir)
+    print(f"\n✅ Generated {len(saved_files)} audio file(s) in '{args.output_dir}/'")
+
 

@@ -2,3 +2,6 @@ saspeech_manual/
 unsloth_compiled_cache/
 *.7z
 *.wav
+dataset_cache/
+outputs/
+lora_tts_model/

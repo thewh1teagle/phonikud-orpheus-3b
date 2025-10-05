@@ -62,16 +62,20 @@ def load_model():
     return model, tokenizer
 
 
-def prepare_dataset():
-    df = pd.read_csv("./saspeech_manual/metadata_phonemes.csv", sep="|", names=["file_id", "text"])
-    df["audio"] = df["file_id"].apply(lambda x: f"./saspeech_manual/wav/{x}.wav")
+def prepare_dataset(cache_dir='dataset_cache'):
+    if os.path.exists(cache_dir):
+        dataset = Dataset.load_from_disk(cache_dir)
+    else:
+        df = pd.read_csv("./saspeech_manual/metadata_phonemes.csv", sep="|", names=["file_id", "text"])
+        df["audio"] = df["file_id"].apply(lambda x: f"./saspeech_manual/wav/{x}.wav")
 
-    dataset = Dataset.from_dict(df)
-    dataset = dataset.cast_column("audio", Audio(sampling_rate=22050))
-    # Decode the audio (instead of lazy loading)
-    dataset = dataset.map(lambda x: {"audio": x["audio"]})
-    
-    # dataset = load_dataset("MrDragonFox/Elise", split = "train")
+        dataset = Dataset.from_dict(df)
+        dataset = dataset.cast_column("audio", Audio(sampling_rate=22050))
+        # Decode the audio (instead of lazy loading)
+        dataset = dataset.map(lambda x: {"audio": x["audio"]})
+        
+        # dataset = load_dataset("MrDragonFox/Elise", split = "train")
+        dataset.save_to_cache(cache_dir)
 
     return dataset
 
@@ -231,7 +235,9 @@ ensure that the dataset includes a "source" field and format the input according
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--report_to', type=str, default="none")
-    parser.add_argument('--max_steps', type=int, default=60)
+    parser.add_argument('--max_steps', type=int, default=100)
+    parser.add_argument('--save_steps', type=int, default=50)
+    parser.add_argument('--resume_from_checkpoint', action='store_true')
 
     args = parser.parse_args()
     
@@ -264,11 +270,13 @@ if __name__ == "__main__":
             seed = 3407,
             output_dir = "outputs",
             report_to = args.report_to, # Use this for WandB etc
+            save_total_limit = 5, # Save only the last 5 checkpoints
+            save_steps = args.save_steps
         ),
     )
 
     # Train the model
-    trainer.train()
+    trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
 
     # Save the model
     model.save_pretrained("lora_tts_model")  # Local saving
