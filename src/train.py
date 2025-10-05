@@ -240,7 +240,6 @@ if __name__ == "__main__":
 
     print('Loading dataset...')
     dataset = prepare_dataset()
-    breakpoint()
     
     # Tokenize the dataset
     print('Tokenizing dataset...')
